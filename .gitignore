@@ -8,6 +8,7 @@
 *.db-wal
 *.db-shm
 bot_data.db
+data/
 
 # ── hellapi.py — is mein key aa sakti hai, distribute karo lekin commit mat ──
 # (project mein rakho, but .gitignore se hatao agar intentionally commit karna ho)

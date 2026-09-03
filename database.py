@@ -25,7 +25,10 @@ from contextlib import contextmanager
 
 logger = logging.getLogger(__name__)
 
-DB_PATH           = "bot_data.db"
+DB_PATH           = os.getenv(
+    "DB_PATH",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot_data.db"),
+)
 KEY_VALIDITY_DAYS = 30          # 30-day keys for paid plans, 28 for free
 
 

@@ -18,10 +18,15 @@ import os
 import logging
 from typing import Optional
 
+from dotenv import load_dotenv
+
+# Load configuration before importing modules that read environment variables
+# during import (database path, rate-limit settings, yt-dlp worker settings).
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from dotenv import load_dotenv
 
 from ytdlp import (
     get_video_info,
@@ -84,7 +89,9 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    # Credentials cannot be used with a wildcard origin. The API authenticates
+    # with an API key, so browser credentials are intentionally disabled.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -208,8 +215,16 @@ def require_valid_key(request: Request) -> dict:
 
 
 def require_admin(request: Request):
+    if not ADMIN_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "error": "admin_not_configured",
+                "message": "ADMIN_KEY is not configured on this server.",
+            },
+        )
     key = request.headers.get("x-api-key") or request.query_params.get("api_key")
-    if ADMIN_KEY and key != ADMIN_KEY:
+    if key != ADMIN_KEY:
         raise HTTPException(
             status_code=403,
             detail={"error": "forbidden", "message": "Admin access required."},
@@ -322,6 +337,12 @@ def root():
             "GET /plans":      "all plans & pricing",
         },
     }
+
+
+@app.get("/healthz", tags=["Info"], include_in_schema=False)
+def healthz():
+    """Lightweight unauthenticated health check for hosting platforms."""
+    return {"status": "ok", "service": APP_NAME}
 
 
 @app.get("/plans", tags=["Info"], summary="All plans & pricing")

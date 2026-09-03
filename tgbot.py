@@ -29,6 +29,8 @@ import pytz
 from datetime import datetime
 from dotenv import load_dotenv
 
+load_dotenv()
+
 from telegram import (
     Update,
     InlineKeyboardButton,
@@ -47,8 +49,6 @@ from telegram.constants import ParseMode
 from telegram.error import TelegramError, BadRequest
 
 import database as db
-
-load_dotenv()
 
 # ── Config ───────────────────────────────────────────────────────────────────
 BOT_TOKEN     = os.getenv("TELEGRAM_BOT_TOKEN", "")
@@ -1173,7 +1173,6 @@ async def run_bot():
 
     async with app:
         await app.bot.set_my_commands(BOT_COMMANDS)
-        await app.initialize()
         await app.start()
         await app.updater.start_polling(
             drop_pending_updates=True,
