@@ -71,8 +71,8 @@ BOT_URL       = _normalise_base_url(os.getenv("BOT_URL", ""))
 APP_URL       = _normalise_base_url(os.getenv("APP_URL", "http://localhost:8000"), "http://localhost:8000")
 API_BASE_URL  = _normalise_base_url(os.getenv("API_BASE_URL", ""), APP_URL)
 BOT_NAME      = os.getenv("BOT_NAME", "BetaAPI")
-SUPPORT_GROUP = os.getenv("SUPPORT_GROUP", "https://t.me/your_support_group")
-CHANNEL       = os.getenv("CHANNEL", "https://t.me/your_channel")
+SUPPORT_GROUP = _normalise_base_url(os.getenv("SUPPORT_GROUP", ""), "https://t.me/your_support_group")
+CHANNEL       = _normalise_base_url(os.getenv("CHANNEL", ""), "https://t.me/your_channel")
 ADMIN_IDS     = [int(x) for x in os.getenv("ADMIN_IDS", "0").split(",") if x.strip().isdigit()]
 
 # Payment details — fill in .env
@@ -312,7 +312,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     msg = (
         f"👋 *Welcome to {BOT_NAME}!*\n\n"
-        f"YouTube Stream API — apne music bot me lagao aur song play karo VC me.\n\n"
+        f"YouTube Stream API — connect it to your music bot and play songs in voice chat.\n\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
         f"🔑 *Your API Key:*\n"
         f"`{key_row['key']}`\n\n"
@@ -367,18 +367,18 @@ async def cmd_getfile(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
     yt_caption = (
         f"🎵 *youtube.py — Drop-in Replacement*\n\n"
-        f"📌 *Yeh file apne music bot ke folder mein daalo*\n"
-        f"_(purani youtube.py replace kar do)_\n\n"
+        f"📌 *Place this file in your music bot folder*\n"
+        f"_(replace your existing youtube.py file)_\n\n"
         f"*Your credentials:*\n"
         f"🔑 Key: `{key_row['key']}`\n"
         f"🌐 URL: `{api_url}`\n\n"
-        f"*Setup (.env mein add karo):*\n"
+        f"*Setup (add these values to your .env file):*\n"
         f"```\n"
         f"BETAAPI_URL={api_url}\n"
         f"BETAAPI_KEY={key_row['key']}\n"
         f"```\n\n"
-        f"✅ Bas itna karo — koi aur change nahi\n"
-        f"⚠️ `.env` ko `.gitignore` mein add karo!"
+        f"✅ That is all — no other changes are needed\n"
+        f"⚠️ Add `.env` to `.gitignore` and never commit your credentials."
     )
 
     await update.message.reply_document(
@@ -391,10 +391,10 @@ async def cmd_getfile(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 
-# ── /revokekey — user apni key khud revoke kare (leak hone pe) ───────────────
+# ── /revokekey — user can revoke their own key ─────────────────────────────
 
 async def cmd_revokekey(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-    """User apni leaked/compromised key instant revoke kar sakta hai."""
+    """Allow a user to instantly revoke a leaked or compromised key."""
     user = update.effective_user
     db.upsert_user(user.id, user.username, user.first_name)
     old_row = db.get_active_key(user.id)
@@ -419,7 +419,7 @@ async def cmd_revokekey(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     )
 
 
-# ── /revokeuser <uid> — admin kisi bhi user ki key revoke kare ───────────────
+# ── /revokeuser <uid> — admin can revoke any user key ───────────────────────
 
 async def cmd_revokeuser(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """Admin: force revoke any user's key (abuse/compromise)."""
@@ -984,6 +984,11 @@ async def on_callback(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             thumb = result.get("thumbnail", "")
             if thumb:
                 try:
+                    thumb = _normalise_base_url(thumb)
+                except ValueError:
+                    thumb = ""
+            if thumb:
+                try:
                     await q.message.reply_photo(photo=thumb, caption=text,
                                                 parse_mode=ParseMode.MARKDOWN,
                                                 reply_markup=back_kb())
@@ -1115,7 +1120,13 @@ async def on_message(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     is_yt_id  = len(text) == 11 and text.replace("-", "").replace("_", "").isalnum()
 
     if is_yt_url or is_yt_id:
-        resolved = text if is_yt_url else f"https://www.youtube.com/watch?v={text}"
+        if is_yt_url:
+            try:
+                resolved = _normalise_base_url(text)
+            except ValueError:
+                resolved = text
+        else:
+            resolved = f"https://www.youtube.com/watch?v={text}"
         ctx.user_data["test_url"] = resolved
         await update.message.reply_text(
             f"🎬 *Test API*\n\n`{resolved}`\n\nChoose stream type:",
