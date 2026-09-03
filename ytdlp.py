@@ -18,6 +18,7 @@ import threading
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, List, Dict, Any
+from urllib.parse import urlparse
 
 import yt_dlp
 from cachetools import TTLCache
@@ -97,12 +98,31 @@ _proxy_lock  = threading.Lock()
 _proxy_index = 0
 
 
+def _normalise_proxy(raw: str) -> Optional[str]:
+    """Validate a proxy URL without exposing credentials in logs."""
+    value = (raw or "").strip()
+    if not value:
+        return None
+    if "://" not in value:
+        value = "http://" + value
+    parsed = urlparse(value)
+    if parsed.scheme not in ("http", "https", "socks4", "socks5") or not parsed.hostname:
+        return None
+    return value
+
+
 def _load_proxies() -> List[str]:
     raw = os.getenv("PROXY_LIST", "").strip()
     if not raw:
         return []
-    proxies = [p.strip() for p in raw.split(",") if p.strip()]
-    logger.info(f"Loaded {len(proxies)} proxies for fast round-robin rotation.")
+    proxies = []
+    for item in raw.split(","):
+        proxy = _normalise_proxy(item)
+        if proxy:
+            proxies.append(proxy)
+        elif item.strip():
+            logger.warning("Ignoring invalid proxy entry from PROXY_LIST.")
+    logger.info(f"Loaded {len(proxies)} valid proxies for round-robin rotation.")
     return proxies
 
 
@@ -171,9 +191,29 @@ def _is_unavailable(exc: Exception) -> bool:
     ])
 
 
+def _is_network_error(exc: Exception) -> bool:
+    msg = str(exc).lower()
+    return any(marker in msg for marker in [
+        "name or service not known",
+        "temporary failure in name resolution",
+        "nodename nor servname",
+        "getaddrinfo failed",
+        "connection refused",
+        "network is unreachable",
+        "connection reset",
+        "timed out",
+        "proxy error",
+    ])
+
+
 # ── yt-dlp options builder ───────────────────────────────────────────────────
-def _build_opts(client: list, extra: Optional[Dict] = None) -> Dict[str, Any]:
-    proxy = _get_proxy()
+def _build_opts(
+    client: list,
+    extra: Optional[Dict] = None,
+    proxy_override: Optional[str] = None,
+    disable_proxy: bool = False,
+) -> Dict[str, Any]:
+    proxy = proxy_override if proxy_override is not None else (None if disable_proxy else _get_proxy())
     ua    = _random_ua()
 
     opts: Dict[str, Any] = {
@@ -236,26 +276,43 @@ def _try_extract(url: str, extra_opts: Optional[Dict] = None) -> Dict[str, Any]:
     last_exc: Optional[Exception] = None
 
     for client in _YT_CLIENTS:
-        try:
-            _sleep()
-            opts = _build_opts(client, extra_opts)
-            logger.debug(f"Client {client[0]} → {url[:60]}")
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(url, download=False)
-            if info is None:
-                raise ExtractionError("yt-dlp returned no data.")
-            logger.debug(f"OK with client {client[0]}")
-            return info
-        except yt_dlp.utils.DownloadError as e:
-            if _is_unavailable(e):
-                raise ExtractionError(str(e)) from e
-            if _is_ip_block(e):
-                time.sleep(random.uniform(2.0, 4.0))
-            last_exc = e
-        except Exception as e:
-            if _is_unavailable(e):
-                raise ExtractionError(str(e)) from e
-            last_exc = e
+        configured_proxy = _get_proxy()
+        attempts = [(configured_proxy, False)] if configured_proxy else [(None, True)]
+        # A dead proxy must never prevent the Heroku dyno from trying directly.
+        if configured_proxy:
+            attempts.append((None, True))
+
+        for proxy_override, disable_proxy in attempts:
+            try:
+                _sleep()
+                opts = _build_opts(
+                    client,
+                    extra_opts,
+                    proxy_override=proxy_override,
+                    disable_proxy=disable_proxy,
+                )
+                route = "direct" if disable_proxy else "proxy"
+                logger.debug(f"Client {client[0]} via {route} → {url[:60]}")
+                with yt_dlp.YoutubeDL(opts) as ydl:
+                    info = ydl.extract_info(url, download=False)
+                if info is None:
+                    raise ExtractionError("yt-dlp returned no data.")
+                logger.debug(f"OK with client {client[0]} via {route}")
+                return info
+            except yt_dlp.utils.DownloadError as e:
+                if _is_unavailable(e):
+                    raise ExtractionError(str(e)) from e
+                if _is_ip_block(e):
+                    time.sleep(random.uniform(2.0, 4.0))
+                if proxy_override and _is_network_error(e):
+                    logger.warning("Proxy request failed; retrying directly.")
+                last_exc = e
+            except Exception as e:
+                if _is_unavailable(e):
+                    raise ExtractionError(str(e)) from e
+                if proxy_override and _is_network_error(e):
+                    logger.warning("Proxy request failed; retrying directly.")
+                last_exc = e
 
     if last_exc and _is_ip_block(last_exc):
         raise IPBlockedError(str(last_exc)) from last_exc
@@ -402,21 +459,34 @@ async def search_youtube(query: str, max_results: int = 5) -> List[Dict[str, Any
     if cached:
         return cached
 
-    opts = {
-        "quiet":        True,
-        "no_warnings":  True,
-        "extract_flat": True,
-        "noplaylist":   True,
-        "extractor_args": {"youtube": {"player_client": ["android"]}},
-    }
-
-    def _do_search():
+    def _do_search(use_proxy: bool):
+        opts = _build_opts(
+            ["android"],
+            {"extract_flat": True, "noplaylist": True},
+            disable_proxy=not use_proxy,
+        )
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(f"ytsearch{max_results}:{query}", download=False)
             return info.get("entries", []) if info else []
 
-    loop    = asyncio.get_event_loop()
-    entries = await loop.run_in_executor(_EXECUTOR, _do_search)
+    loop = asyncio.get_event_loop()
+    # Try the configured route first, then direct DNS/network access.
+    routes = [True, False] if get_proxy_pool() else [False, False]
+    last_exc = None
+    entries = []
+    for index, use_proxy in enumerate(routes):
+        try:
+            entries = await loop.run_in_executor(
+                _EXECUTOR, lambda route=use_proxy: _do_search(route)
+            )
+            break
+        except Exception as e:
+            last_exc = e
+            if index < len(routes) - 1:
+                logger.warning("YouTube search route failed; retrying with fallback.")
+                await asyncio.sleep(1.5 * (index + 1))
+    if last_exc is not None and not entries:
+        raise ExtractionError(f"YouTube search network error: {last_exc}") from last_exc
 
     results = []
     for e in entries:
