@@ -19,7 +19,7 @@ BetaAPI resolves YouTube URLs or search queries and returns metadata plus a dire
 - API-key authentication with daily and per-minute plan limits
 - SQLite usage, payment-request, ticket, audit, and metadata-cache tables
 - Telegram bot for free keys, renewals, upgrades, support, payments, and admin actions
-- YouTube client fallback, proxy rotation, cookies, PO token, and TTL caching support
+- YouTube client fallback, direct networking, cookies, PO token, and TTL caching support
 - Heroku `Procfile` + `app.json` with one always-on Basic process running the API and bot together
 - Railway health checks and restart policy
 - Docker Compose setup with persistent SQLite volume
@@ -60,7 +60,7 @@ python start.py
 
 ## Configuration
 
-> **Proxy safety:** `PROXY_LIST` is intentionally a secret Config Var/`.env` value. Do not commit the real proxy credentials, even in a private repository.
+> **Heroku networking:** Proxy routing is disabled to prevent proxy DNS failures. The service uses direct YouTube requests with retries and client fallbacks.
 
 
 Copy `.env.example` to `.env`. Never commit `.env`, Telegram tokens, cookies, proxy credentials, UPI/bank details, or API keys.
@@ -78,7 +78,7 @@ ADMIN_IDS=123456789
 
 Useful optional settings:
 
-- `PROXY_LIST`: comma-separated HTTP proxies for YouTube extraction; set it only in hosting secrets/config vars
+- YouTube networking: direct connections with retries; proxy routing is disabled on Heroku
 - `YTDLP_COOKIE_FILE`: path to a cookies file (keep it outside Git)
 - `YTDLP_PO_TOKEN`: YouTube PO token, if required by the extractor
 - `DB_PATH`: SQLite file location; use persistent storage in production
@@ -165,7 +165,7 @@ Do not paste real tokens into GitHub. Heroku cannot provide durable SQLite stora
 Railway reads `railway.json`, installs the Python requirements, exposes the injected `$PORT`, checks `/healthz`, and restarts failed API processes.
 
 1. Create one Railway service from this GitHub repository.
-2. Add the environment variables from `.env.example`, including the private `PROXY_LIST`.
+2. Add the required environment variables from `.env.example`. Proxy configuration is not required.
 3. Railway will use `python start.py` from the `Procfile`; generate a public domain and set `APP_URL` and `API_BASE_URL` to it.
 4. Keep the service health check on `/healthz`; the same process serves HTTP while the Telegram bot runs in the background.
 5. Use persistent storage or an external database if you need user, payment, and usage data to survive redeploys.
@@ -233,7 +233,7 @@ The included `youtube.py` helper is intended to be copied into another music bot
 - Keep one Uvicorn worker when using the bundled SQLite database.
 - Use persistent disk or an external database before scaling beyond one service instance.
 - Stream URLs are not permanent download links.
-- Add `PROXY_LIST` only with proxies you own or are authorized to use.
+- Proxy routing is disabled by default to keep Heroku DNS reliable.
 - Review YouTube's terms and local copyright law before operating the service commercially.
 - Rotate `ADMIN_KEY` and Telegram credentials if they are ever exposed.
 
