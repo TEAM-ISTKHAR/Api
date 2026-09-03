@@ -74,7 +74,7 @@ TELEGRAM_BOT_TOKEN=123456:replace-me
 ADMIN_IDS=123456789
 ```
 
-`API_BASE_URL` is the URL used by the bot to call the API. URLs are normalized automatically, so `api.example.com` and `https://api.example.com` both work. For a public deployment it can be the same as `APP_URL`; in Docker Compose and the VPS systemd setup it is overridden to the local API address. For a public deployment it can be the same as `APP_URL`; in Docker Compose and the VPS systemd setup it is overridden to the local API address.
+`API_BASE_URL` is the URL used by the bot to call the API. URLs are normalized automatically, so `api.example.com` and `https://api.example.com` both work. For a public deployment it can be the same as `APP_URL`; in Docker Compose and the VPS systemd setup it is overridden to the local API address.
 
 Useful optional settings:
 
