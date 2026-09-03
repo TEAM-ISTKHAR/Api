@@ -92,7 +92,7 @@ def _random_ua_static() -> str:
     return random.choice(_STATIC_UAS)
 
 
-# ── Proxy pool (thread-safe round-robin) ────────────────────────────────────
+# ── Proxy pool (fast, thread-safe round-robin) ─────────────────────────────
 _proxy_lock  = threading.Lock()
 _proxy_index = 0
 
@@ -102,7 +102,7 @@ def _load_proxies() -> List[str]:
     if not raw:
         return []
     proxies = [p.strip() for p in raw.split(",") if p.strip()]
-    logger.info(f"Loaded {len(proxies)} proxies.")
+    logger.info(f"Loaded {len(proxies)} proxies for fast round-robin rotation.")
     return proxies
 
 
@@ -128,13 +128,14 @@ def _get_proxy() -> Optional[str]:
         if not _PROXY_POOL:
             return None
         proxy = _PROXY_POOL[_proxy_index % len(_PROXY_POOL)]
+        # Every extraction/client attempt gets the next proxy.
         _proxy_index += 1
     return proxy
 
 
 # ── Sleep between calls ──────────────────────────────────────────────────────
-_MIN_SLEEP = float(os.getenv("YTDLP_MIN_SLEEP", "0.5"))
-_MAX_SLEEP = float(os.getenv("YTDLP_MAX_SLEEP", "2.0"))
+_MIN_SLEEP = float(os.getenv("YTDLP_MIN_SLEEP", "0.1"))
+_MAX_SLEEP = float(os.getenv("YTDLP_MAX_SLEEP", "0.4"))
 
 
 def _sleep():

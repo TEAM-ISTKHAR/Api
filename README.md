@@ -20,7 +20,7 @@ BetaAPI resolves YouTube URLs or search queries and returns metadata plus a dire
 - SQLite usage, payment-request, ticket, audit, and metadata-cache tables
 - Telegram bot for free keys, renewals, upgrades, support, payments, and admin actions
 - YouTube client fallback, proxy rotation, cookies, PO token, and TTL caching support
-- Heroku `Procfile` + `app.json` with always-on Basic `web` and `worker` processes
+- Heroku `Procfile` + `app.json` with one always-on Basic process running the API and bot together
 - Railway health checks and restart policy
 - Docker Compose setup with persistent SQLite volume
 - VPS systemd units and Nginx reverse-proxy config
@@ -29,10 +29,9 @@ BetaAPI resolves YouTube URLs or search queries and returns metadata plus a dire
 
 | Process | Command | Purpose |
 | --- | --- | --- |
-| `web` / `api` | `python -m uvicorn main:app ...` | HTTP API |
-| `worker` / `bot` | `python tgbot.py` | Telegram polling bot |
+| `web` / `app` | `python start.py` | HTTP API + Telegram polling bot |
 
-Run the API and bot as separate processes. This keeps Telegram polling independent from HTTP health checks and lets either process restart without taking the other down.
+The API and bot start together through one supervised process. If either side exits, the launcher stops cleanly so Heroku, Railway, Docker, or systemd can restart the complete service.
 
 ## Quick start
 
@@ -47,16 +46,16 @@ pip install -r requirements.txt
 cp .env.example .env
 # Fill .env before starting
 
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
+python start.py
 ```
 
 Open `http://localhost:8000/docs`. The API root and `/healthz` do not require a key; stream and account endpoints do.
 
-Start the Telegram bot in a second terminal:
+Start both the API and Telegram bot together:
 
 ```bash
 source .venv/bin/activate
-python tgbot.py
+python start.py
 ```
 
 ## Configuration
@@ -76,11 +75,11 @@ ADMIN_IDS=123456789
 
 Useful optional settings:
 
-- `PROXY_LIST`: comma-separated HTTP proxies for YouTube extraction
+- `PROXY_LIST`: comma-separated HTTP proxies for YouTube extraction; set it only in hosting secrets/config vars
 - `YTDLP_COOKIE_FILE`: path to a cookies file (keep it outside Git)
 - `YTDLP_PO_TOKEN`: YouTube PO token, if required by the extractor
 - `DB_PATH`: SQLite file location; use persistent storage in production
-- `YTDLP_WORKERS`: extraction thread count; start with `4`
+- `YTDLP_WORKERS`: extraction thread count; start with `6`
 - `BF_MAX_ATTEMPTS`, `BF_WINDOW_SEC`, `BF_BLOCK_SEC`: invalid-key protection
 
 Generate a strong admin key without putting it in shell history:
@@ -126,14 +125,14 @@ Admin endpoints use the same `x-api-key` header with `ADMIN_KEY`.
 
 ## Heroku: Basic dynos, API + bot
 
-The repository includes a `Procfile` with `web` and `worker` processes. `app.json` requests one **Basic** dyno for each process so the API and Telegram bot stay on; Basic dynos are paid and do not use Eco sleeping behavior.
+The repository includes a single `web` process that runs both API and Telegram bot through `start.py`. `app.json` requests one always-on **Basic** dyno; Basic dynos are paid and do not use Eco sleeping behavior.
 
 ### Deploy from the Heroku Dashboard
 
 1. Create a Heroku app and connect this GitHub repository.
 2. In **Settings → Config Vars**, add the values from `.env.example`.
 3. Deploy the `main` branch.
-4. In **Resources**, verify `web` and `worker` are both set to `Basic` and quantity `1`.
+4. In **Resources**, verify `web` is set to `Basic` and quantity `1`.
 
 ### Deploy with Heroku CLI
 
@@ -150,7 +149,7 @@ heroku config:set \
   -a your-betaapi-name
 
 git push heroku main
-heroku ps:scale web=1:basic worker=1:basic -a your-betaapi-name
+heroku ps:scale web=1:basic -a your-betaapi-name
 heroku ps -a your-betaapi-name
 ```
 
@@ -162,18 +161,15 @@ Do not paste real tokens into GitHub. Heroku cannot provide durable SQLite stora
 
 Railway reads `railway.json`, installs the Python requirements, exposes the injected `$PORT`, checks `/healthz`, and restarts failed API processes.
 
-1. Create a Railway project from this GitHub repository.
-2. Add the environment variables from `.env.example`.
-3. Deploy the first service as the API. Generate a public domain and set `APP_URL` and `API_BASE_URL` to it.
-4. Add a second service from the same repository for the bot.
-5. Set its start command to `python tgbot.py`.
-6. Give both services the same `DB_PATH` only if the database is on persistent shared storage; otherwise use an external database for multi-service production.
-
-For the bot service, disable the HTTP health check or configure its start command separately; the bot is a long-running Telegram polling process, not an HTTP server.
+1. Create one Railway service from this GitHub repository.
+2. Add the environment variables from `.env.example`, including the private `PROXY_LIST`.
+3. Railway will use `python start.py` from the `Procfile`; generate a public domain and set `APP_URL` and `API_BASE_URL` to it.
+4. Keep the service health check on `/healthz`; the same process serves HTTP while the Telegram bot runs in the background.
+5. Use persistent storage or an external database if you need user, payment, and usage data to survive redeploys.
 
 ## VPS: recommended Docker deployment
 
-Docker Compose keeps the API and bot alive with `restart: unless-stopped` and stores SQLite in a named volume.
+Docker Compose runs the API and bot together with `restart: unless-stopped` and stores SQLite in a named volume.
 
 ```bash
 git clone https://github.com/TEAM-ISTKHAR/Api.git /opt/betaapi
@@ -209,10 +205,10 @@ python3.12 -m venv .venv
 cp .env.example .env
 # Edit .env and set TELEGRAM_BOT_TOKEN, ADMIN_IDS, and ADMIN_KEY
 
-sudo cp deploy/betaapi-api.service deploy/betaapi-bot.service /etc/systemd/system/
+sudo cp deploy/betaapi.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now betaapi-api betaapi-bot
-sudo systemctl status betaapi-api betaapi-bot
+sudo systemctl enable --now betaapi
+sudo systemctl status betaapi
 ```
 
 The service files expect the checkout at `/opt/betaapi` and persistent SQLite at `/var/lib/betaapi/bot_data.db`.
@@ -232,7 +228,7 @@ The included `youtube.py` helper is intended to be copied into another music bot
 ## Production notes
 
 - Keep one Uvicorn worker when using the bundled SQLite database.
-- Use persistent disk or an external database for more than one service instance.
+- Use persistent disk or an external database before scaling beyond one service instance.
 - Stream URLs are not permanent download links.
 - Add `PROXY_LIST` only with proxies you own or are authorized to use.
 - Review YouTube's terms and local copyright law before operating the service commercially.

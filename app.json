@@ -1,15 +1,17 @@
 {
   "name": "BetaAPI",
   "description": "YouTube stream API with Telegram key-management bot",
-  "keywords": ["python", "fastapi", "youtube", "telegram", "api"],
+  "keywords": [
+    "python",
+    "fastapi",
+    "youtube",
+    "telegram",
+    "api"
+  ],
   "repository": "https://github.com/TEAM-ISTKHAR/Api",
   "stack": "heroku-24",
   "formation": {
     "web": {
-      "quantity": 1,
-      "size": "basic"
-    },
-    "worker": {
       "quantity": 1,
       "size": "basic"
     }

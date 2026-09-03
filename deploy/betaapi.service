@@ -1,5 +1,5 @@
 [Unit]
-Description=BetaAPI FastAPI service
+Description=BetaAPI combined API and Telegram bot
 After=network.target
 
 [Service]
@@ -10,7 +10,7 @@ WorkingDirectory=/opt/betaapi
 EnvironmentFile=/opt/betaapi/.env
 Environment=PORT=8000
 Environment=DB_PATH=/var/lib/betaapi/bot_data.db
-ExecStart=/opt/betaapi/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8000 --workers 1
+ExecStart=/opt/betaapi/.venv/bin/python start.py
 Restart=always
 RestartSec=5
 
