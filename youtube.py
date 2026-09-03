@@ -19,13 +19,28 @@ import asyncio
 import os
 import re
 from typing import Union
+from urllib.parse import urlparse
 
 import aiohttp
 from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
 
 # ── Config ───────────────────────────────────────────────────────────────────
-API_URL = os.environ.get("BETAAPI_URL", "").rstrip("/")
+def _normalise_base_url(raw: str) -> str:
+    value = (raw or "").strip().rstrip("/")
+    if not value:
+        return ""
+    if value.startswith("//"):
+        value = "https:" + value
+    elif "://" not in value:
+        scheme = "http" if value.startswith(("localhost", "127.", "0.0.0.0")) else "https"
+        value = scheme + "://" + value
+    parsed = urlparse(value)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise ValueError("BETAAPI_URL must include a valid HTTP(S) host.")
+    return value.rstrip("/")
+
+API_URL = _normalise_base_url(os.environ.get("BETAAPI_URL", ""))
 API_KEY = os.environ.get("BETAAPI_KEY", "")
 
 if not API_URL:

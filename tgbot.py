@@ -27,6 +27,7 @@ import httpx
 import pytz
 
 from datetime import datetime
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -51,10 +52,24 @@ from telegram.error import TelegramError, BadRequest
 import database as db
 
 # ── Config ───────────────────────────────────────────────────────────────────
+def _normalise_base_url(raw: str, default: str = "") -> str:
+    value = (raw or "").strip().rstrip("/")
+    if not value:
+        return default
+    if value.startswith("//"):
+        value = "https:" + value
+    elif "://" not in value:
+        scheme = "http" if value.startswith(("localhost", "127.", "0.0.0.0")) else "https"
+        value = scheme + "://" + value
+    parsed = urlparse(value)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise ValueError("Base URL must include a valid HTTP(S) host.")
+    return value.rstrip("/")
+
 BOT_TOKEN     = os.getenv("TELEGRAM_BOT_TOKEN", "")
-BOT_URL       = os.getenv("BOT_URL", "")                    # e.g. https://t.me/BetaAPIBot
-APP_URL       = os.getenv("APP_URL", "http://localhost:8000").rstrip("/")
-API_BASE_URL  = os.getenv("API_BASE_URL", APP_URL).rstrip("/")
+BOT_URL       = _normalise_base_url(os.getenv("BOT_URL", ""))
+APP_URL       = _normalise_base_url(os.getenv("APP_URL", "http://localhost:8000"), "http://localhost:8000")
+API_BASE_URL  = _normalise_base_url(os.getenv("API_BASE_URL", ""), APP_URL)
 BOT_NAME      = os.getenv("BOT_NAME", "BetaAPI")
 SUPPORT_GROUP = os.getenv("SUPPORT_GROUP", "https://t.me/your_support_group")
 CHANNEL       = os.getenv("CHANNEL", "https://t.me/your_channel")

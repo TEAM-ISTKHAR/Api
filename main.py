@@ -17,6 +17,7 @@ Auth:
 import os
 import logging
 from typing import Optional
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
@@ -54,9 +55,24 @@ from database import (
 load_dotenv()
 
 logger   = logging.getLogger(__name__)
+
+def _normalise_base_url(raw: str, default: str = "") -> str:
+    value = (raw or "").strip().rstrip("/")
+    if not value:
+        return default
+    if value.startswith("//"):
+        value = "https:" + value
+    elif "://" not in value:
+        scheme = "http" if value.startswith(("localhost", "127.", "0.0.0.0")) else "https"
+        value = scheme + "://" + value
+    parsed = urlparse(value)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise ValueError("Base URL must include a valid HTTP(S) host.")
+    return value.rstrip("/")
+
 APP_NAME = os.getenv("APP_NAME", "BetaAPI")
-APP_URL  = os.getenv("APP_URL", "")           # e.g. https://betaapi.onrender.com
-BOT_URL  = os.getenv("BOT_URL", "")           # e.g. https://t.me/BetaAPIBot
+APP_URL  = _normalise_base_url(os.getenv("APP_URL", ""))
+BOT_URL  = _normalise_base_url(os.getenv("BOT_URL", ""))
 ADMIN_KEY = os.getenv("ADMIN_KEY", "")
 
 
