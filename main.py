@@ -1,7 +1,7 @@
 """
 main.py
 --------
-HellAPI v5.0 — Commercial YouTube Stream API
+BetaAPI v5.0 — Commercial YouTube Stream API
 
 Plans:
   free   →   50 req/day,   5 req/min  — Free
@@ -10,8 +10,8 @@ Plans:
   ultra  →  Unlimited,   200 req/min  — ₹699/month
 
 Auth:
-  Header:      x-api-key: HellAPIxxxxxxxx
-  Query param: ?api_key=HellAPIxxxxxxxx
+  Header:      x-api-key: BetaAPIxxxxxxxx
+  Query param: ?api_key=BetaAPIxxxxxxxx
 """
 
 import os
@@ -54,9 +54,9 @@ from database import (
 load_dotenv()
 
 logger   = logging.getLogger(__name__)
-APP_NAME = os.getenv("APP_NAME", "HellAPI")
-APP_URL  = os.getenv("APP_URL", "")           # e.g. https://hellapi.onrender.com
-BOT_URL  = os.getenv("BOT_URL", "")           # e.g. https://t.me/HellAPIBot
+APP_NAME = os.getenv("APP_NAME", "BetaAPI")
+APP_URL  = os.getenv("APP_URL", "")           # e.g. https://betaapi.onrender.com
+BOT_URL  = os.getenv("BOT_URL", "")           # e.g. https://t.me/BetaAPIBot
 ADMIN_KEY = os.getenv("ADMIN_KEY", "")
 
 

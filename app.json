@@ -1,5 +1,5 @@
 {
-  "name": "HellAPI",
+  "name": "BetaAPI",
   "description": "YouTube stream API with Telegram key-management bot",
   "keywords": ["python", "fastapi", "youtube", "telegram", "api"],
   "repository": "https://github.com/TEAM-ISTKHAR/Api",
@@ -17,7 +17,7 @@
   "env": {
     "APP_NAME": {
       "description": "Name shown in the API response and Telegram bot",
-      "value": "HellAPI"
+      "value": "BetaAPI"
     },
     "APP_URL": {
       "description": "Public URL of the deployed API",

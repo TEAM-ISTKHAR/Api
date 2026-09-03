@@ -1,0 +1,19 @@
+[Unit]
+Description=BetaAPI Telegram bot
+After=network.target betaapi-api.service
+Wants=betaapi-api.service
+
+[Service]
+Type=simple
+User=betaapi
+Group=betaapi
+WorkingDirectory=/opt/betaapi
+EnvironmentFile=/opt/betaapi/.env
+Environment=API_BASE_URL=http://127.0.0.1:8000
+Environment=DB_PATH=/var/lib/betaapi/bot_data.db
+ExecStart=/opt/betaapi/.venv/bin/python tgbot.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

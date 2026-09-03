@@ -1,7 +1,7 @@
 """
 database.py
 -----------
-SQLite manager for HellAPI — commercial grade.
+SQLite manager for BetaAPI — commercial grade.
 
 Tables:
   users            - registered Telegram users
@@ -232,7 +232,7 @@ def count_users() -> int:
 
 def _gen_key() -> str:
     chars = string.ascii_letters + string.digits
-    return "HellAPI" + "".join(secrets.choice(chars) for _ in range(32))
+    return "BetaAPI" + "".join(secrets.choice(chars) for _ in range(32))
 
 
 def _validity_days(plan: str) -> int:

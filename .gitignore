@@ -10,9 +10,9 @@
 bot_data.db
 data/
 
-# ── hellapi.py — is mein key aa sakti hai, distribute karo lekin commit mat ──
+# ── betaapi.py — is mein key aa sakti hai, distribute karo lekin commit mat ──
 # (project mein rakho, but .gitignore se hatao agar intentionally commit karna ho)
-# hellapi.py   ← uncomment karo agar users ko auto-distribute nahi karna
+# betaapi.py   ← uncomment karo agar users ko auto-distribute nahi karna
 
 # ── Python cache ──────────────────────────────────────────────────────────────
 __pycache__/

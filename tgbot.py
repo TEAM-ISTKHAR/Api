@@ -1,7 +1,7 @@
 """
 tgbot.py
 --------
-HellAPI Commercial Telegram Bot v5.0
+BetaAPI Commercial Telegram Bot v5.0
 
 Features:
   - /start     → auto key + welcome
@@ -52,17 +52,17 @@ import database as db
 
 # ── Config ───────────────────────────────────────────────────────────────────
 BOT_TOKEN     = os.getenv("TELEGRAM_BOT_TOKEN", "")
-BOT_URL       = os.getenv("BOT_URL", "")                    # e.g. https://t.me/HellAPIBot
+BOT_URL       = os.getenv("BOT_URL", "")                    # e.g. https://t.me/BetaAPIBot
 APP_URL       = os.getenv("APP_URL", "http://localhost:8000").rstrip("/")
 API_BASE_URL  = os.getenv("API_BASE_URL", APP_URL).rstrip("/")
-BOT_NAME      = os.getenv("BOT_NAME", "HellAPI")
-SUPPORT_GROUP = os.getenv("SUPPORT_GROUP", "https://t.me/hellupdates1")
-CHANNEL       = os.getenv("CHANNEL", "https://t.me/hellupdates1")
+BOT_NAME      = os.getenv("BOT_NAME", "BetaAPI")
+SUPPORT_GROUP = os.getenv("SUPPORT_GROUP", "https://t.me/your_support_group")
+CHANNEL       = os.getenv("CHANNEL", "https://t.me/your_channel")
 ADMIN_IDS     = [int(x) for x in os.getenv("ADMIN_IDS", "0").split(",") if x.strip().isdigit()]
 
 # Payment details — fill in .env
 UPI_ID        = os.getenv("UPI_ID", "yourname@upi")
-UPI_NAME      = os.getenv("UPI_NAME", "HellAPI")
+UPI_NAME      = os.getenv("UPI_NAME", "BetaAPI")
 BANK_NAME     = os.getenv("BANK_NAME", "")
 BANK_ACCOUNT  = os.getenv("BANK_ACCOUNT", "")
 BANK_IFSC     = os.getenv("BANK_IFSC", "")
@@ -308,17 +308,17 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"⏳ Expires in: *{days} days*\n"
         f"━━━━━━━━━━━━━━━━━━━━\n\n"
         f"*🚀 Music Bot Setup (3 steps):*\n\n"
-        f"*Step 1* — Download `hellapi.py`:\n"
+        f"*Step 1* — Download `betaapi.py`:\n"
         f"Send /getfile to get the file\n\n"
         f"*Step 2* — Add to your bot's `.env`:\n"
-        f"`HELLAPI_URL={api_url}`\n"
-        f"`HELLAPI_KEY={key_row['key']}`\n\n"
+        f"`BETAAPI_URL={api_url}`\n"
+        f"`BETAAPI_KEY={key_row['key']}`\n\n"
         f"*Step 3* — In your music bot:\n"
-        f"`from hellapi import song`\n"
+        f"`from betaapi import song`\n"
         f"`data = await song(query)`\n"
         f"`stream_url = data['streamLink']`\n\n"
         f"📖 Full docs: {api_url}/docs\n"
-        f"❓ Help: /getfile for hellapi.py"
+        f"❓ Help: /getfile for betaapi.py"
     )
     await update.message.reply_text(
         msg, parse_mode=ParseMode.MARKDOWN, reply_markup=main_menu_kb()
@@ -329,7 +329,7 @@ async def cmd_start(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_getfile(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     """
-    Send youtube.py (drop-in replacement) + hellapi.py (direct client).
+    Send youtube.py (drop-in replacement) + betaapi.py (direct client).
     Keys are NOT embedded in files — shown only in caption.
     """
     user    = update.effective_user
@@ -359,8 +359,8 @@ async def cmd_getfile(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         f"🌐 URL: `{api_url}`\n\n"
         f"*Setup (.env mein add karo):*\n"
         f"```\n"
-        f"HELLAPI_URL={api_url}\n"
-        f"HELLAPI_KEY={key_row['key']}\n"
+        f"BETAAPI_URL={api_url}\n"
+        f"BETAAPI_KEY={key_row['key']}\n"
         f"```\n\n"
         f"✅ Bas itna karo — koi aur change nahi\n"
         f"⚠️ `.env` ko `.gitignore` mein add karo!"

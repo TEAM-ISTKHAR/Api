@@ -9,7 +9,7 @@ services:
     ports:
       - "${HOST_PORT:-8000}:8000"
     volumes:
-      - hellapi-data:/app/data
+      - betaapi-data:/app/data
     healthcheck:
       test:
         - CMD
@@ -33,7 +33,7 @@ services:
       api:
         condition: service_healthy
     volumes:
-      - hellapi-data:/app/data
+      - betaapi-data:/app/data
 
 volumes:
-  hellapi-data:
+  betaapi-data:

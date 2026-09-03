@@ -1,13 +1,14 @@
-# HellAPI
+# BetaAPI
 
 **FastAPI YouTube stream API + Telegram API-key bot**  
 Built for music bots, lightweight deployments, and simple plan-based access control.
 
 [![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/TEAM-ISTKHAR/Api)
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new)
 
-HellAPI resolves YouTube URLs or search queries and returns metadata plus a direct stream URL. The companion Telegram bot creates API keys, tracks usage, handles plan upgrades, and provides a small admin workflow.
+BetaAPI resolves YouTube URLs or search queries and returns metadata plus a direct stream URL. The companion Telegram bot creates API keys, tracks usage, handles plan upgrades, and provides a small admin workflow.
 
 > **Important:** direct media URLs are temporary and can expire. Use them immediately instead of storing them. Only use this project for content you are allowed to access and process.
 
@@ -93,7 +94,7 @@ python -c "import secrets; print(secrets.token_urlsafe(32))"
 Use the header form in production:
 
 ```bash
-curl -H "x-api-key: HellAPIxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
+curl -H "x-api-key: BetaAPIxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" \
   "https://your-api.example.com/stream?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DVIDEO_ID"
 ```
 
@@ -137,20 +138,20 @@ The repository includes a `Procfile` with `web` and `worker` processes. `app.jso
 ### Deploy with Heroku CLI
 
 ```bash
-heroku create your-hellapi-name
-heroku stack:set heroku-24 -a your-hellapi-name
+heroku create your-betaapi-name
+heroku stack:set heroku-24 -a your-betaapi-name
 
 heroku config:set \
-  APP_NAME=HellAPI \
-  APP_URL=https://your-hellapi-name.herokuapp.com \
-  API_BASE_URL=https://your-hellapi-name.herokuapp.com \
+  APP_NAME=BetaAPI \
+  APP_URL=https://your-betaapi-name.herokuapp.com \
+  API_BASE_URL=https://your-betaapi-name.herokuapp.com \
   ADMIN_KEY="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')" \
   ADMIN_IDS="123456789" \
-  -a your-hellapi-name
+  -a your-betaapi-name
 
 git push heroku main
-heroku ps:scale web=1:basic worker=1:basic -a your-hellapi-name
-heroku ps -a your-hellapi-name
+heroku ps:scale web=1:basic worker=1:basic -a your-betaapi-name
+heroku ps -a your-betaapi-name
 ```
 
 Add `TELEGRAM_BOT_TOKEN` separately in the Heroku dashboard or with `heroku config:set` from a secure terminal.
@@ -175,8 +176,8 @@ For the bot service, disable the HTTP health check or configure its start comman
 Docker Compose keeps the API and bot alive with `restart: unless-stopped` and stores SQLite in a named volume.
 
 ```bash
-git clone https://github.com/TEAM-ISTKHAR/Api.git /opt/hellapi
-cd /opt/hellapi
+git clone https://github.com/TEAM-ISTKHAR/Api.git /opt/betaapi
+cd /opt/betaapi
 cp .env.example .env
 nano .env
 
@@ -185,10 +186,10 @@ docker compose ps
 curl http://127.0.0.1:8000/healthz
 ```
 
-Put `deploy/nginx.conf` in `/etc/nginx/sites-available/hellapi`, replace `api.example.com`, enable it, and issue TLS with Certbot:
+Put `deploy/nginx.conf` in `/etc/nginx/sites-available/betaapi`, replace `api.example.com`, enable it, and issue TLS with Certbot:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/hellapi /etc/nginx/sites-enabled/hellapi
+sudo ln -s /etc/nginx/sites-available/betaapi /etc/nginx/sites-enabled/betaapi
 sudo nginx -t && sudo systemctl reload nginx
 sudo certbot --nginx -d api.example.com
 ```
@@ -198,23 +199,23 @@ sudo certbot --nginx -d api.example.com
 For a non-Docker install:
 
 ```bash
-sudo useradd --system --home /opt/hellapi --shell /usr/sbin/nologin hellapi
-sudo mkdir -p /opt/hellapi /var/lib/hellapi
-sudo chown -R hellapi:hellapi /opt/hellapi /var/lib/hellapi
+sudo useradd --system --home /opt/betaapi --shell /usr/sbin/nologin betaapi
+sudo mkdir -p /opt/betaapi /var/lib/betaapi
+sudo chown -R betaapi:betaapi /opt/betaapi /var/lib/betaapi
 
-cd /opt/hellapi
+cd /opt/betaapi
 python3.12 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 cp .env.example .env
 # Edit .env and set TELEGRAM_BOT_TOKEN, ADMIN_IDS, and ADMIN_KEY
 
-sudo cp deploy/hellapi-api.service deploy/hellapi-bot.service /etc/systemd/system/
+sudo cp deploy/betaapi-api.service deploy/betaapi-bot.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now hellapi-api hellapi-bot
-sudo systemctl status hellapi-api hellapi-bot
+sudo systemctl enable --now betaapi-api betaapi-bot
+sudo systemctl status betaapi-api betaapi-bot
 ```
 
-The service files expect the checkout at `/opt/hellapi` and persistent SQLite at `/var/lib/hellapi/bot_data.db`.
+The service files expect the checkout at `/opt/betaapi` and persistent SQLite at `/var/lib/betaapi/bot_data.db`.
 
 ## Telegram bot commands
 

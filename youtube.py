@@ -1,14 +1,14 @@
 """
 youtube.py
 ----------
-HellAPI — Drop-in replacement for any music bot's youtube.py
+BetaAPI — Drop-in replacement for any music bot's youtube.py
 
 Setup:
   1. Copy this file to your music bot's platforms folder
      (rename to Youtube.py if needed)
   2. Add to .env:
-       HELLAPI_URL=http://localhost:8000
-       HELLAPI_KEY=HellAPIxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+       BETAAPI_URL=http://localhost:8000
+       BETAAPI_KEY=BetaAPIxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
   3. Done — no other changes needed
 
 Compatible with: AnonXMusic, YukkiMusic, SankiMusic, EnafulMusic,
@@ -25,19 +25,19 @@ from pyrogram.enums import MessageEntityType
 from pyrogram.types import Message
 
 # ── Config ───────────────────────────────────────────────────────────────────
-API_URL = os.environ.get("HELLAPI_URL", "").rstrip("/")
-API_KEY = os.environ.get("HELLAPI_KEY", "")
+API_URL = os.environ.get("BETAAPI_URL", "").rstrip("/")
+API_KEY = os.environ.get("BETAAPI_KEY", "")
 
 if not API_URL:
     raise EnvironmentError(
-        "[HellAPI] HELLAPI_URL not set.\n"
-        "Add to .env:  HELLAPI_URL=http://your-server:8000"
+        "[BetaAPI] BETAAPI_URL not set.\n"
+        "Add to .env:  BETAAPI_URL=http://your-server:8000"
     )
 if not API_KEY:
     raise EnvironmentError(
-        "[HellAPI] HELLAPI_KEY not set.\n"
-        "Add to .env:  HELLAPI_KEY=HellAPIxxxxxxxxxxxxxxxx\n"
-        "Get key: HellAPI Telegram Bot → /start"
+        "[BetaAPI] BETAAPI_KEY not set.\n"
+        "Add to .env:  BETAAPI_KEY=BetaAPIxxxxxxxxxxxxxxxx\n"
+        "Get key: BetaAPI Telegram Bot → /start"
     )
 
 _HEADERS  = {"x-api-key": API_KEY, "Connection": "keep-alive"}
@@ -138,7 +138,7 @@ def _cleanup(path: str):
 
 
 async def _api_get(path: str, params: dict, timeout=None, retries: int = 2) -> dict:
-    """GET request to HellAPI with auto-retry on failure."""
+    """GET request to BetaAPI with auto-retry on failure."""
     url = f"{API_URL}{path}"
     last_exc = None
     for attempt in range(retries + 1):
@@ -155,8 +155,8 @@ async def _api_get(path: str, params: dict, timeout=None, retries: int = 2) -> d
                 ) as resp:
                     if resp.status == 401:
                         raise PermissionError(
-                            "HellAPI key invalid/expired. "
-                            "Get new key from HellAPI bot → /start"
+                            "BetaAPI key invalid/expired. "
+                            "Get new key from BetaAPI bot → /start"
                         )
                     if resp.status == 429:
                         data = await resp.json()
@@ -166,7 +166,7 @@ async def _api_get(path: str, params: dict, timeout=None, retries: int = 2) -> d
                         raise ConnectionError("YouTube IP block. Retry in a few minutes.")
                     if resp.status != 200:
                         text = await resp.text()
-                        raise ConnectionError(f"HellAPI {resp.status}: {text[:100]}")
+                        raise ConnectionError(f"BetaAPI {resp.status}: {text[:100]}")
                     return await resp.json()
         except (PermissionError, ConnectionAbortedError):
             raise   # Don't retry auth/rate limit errors
@@ -174,7 +174,7 @@ async def _api_get(path: str, params: dict, timeout=None, retries: int = 2) -> d
             last_exc = e
             if attempt < retries:
                 await asyncio.sleep(1.5 * (attempt + 1))
-    raise last_exc or ConnectionError("HellAPI request failed")
+    raise last_exc or ConnectionError("BetaAPI request failed")
 
 
 async def _download_file(url: str, path: str, timeout=None):
