@@ -40,6 +40,20 @@ def _normalise_base_url(raw: str) -> str:
         raise ValueError("BETAAPI_URL must include a valid HTTP(S) host.")
     return value.rstrip("/")
 
+def _ensure_http_url(raw: str, label: str = "URL") -> str:
+    """Return a valid absolute HTTP(S) URL for outbound requests."""
+    value = str(raw or "").strip()
+    if not value:
+        raise ValueError(f"{label} is empty.")
+    if value.startswith("//"):
+        value = "https:" + value
+    elif "://" not in value:
+        value = "https://" + value
+    parsed = urlparse(value)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise ValueError(f"{label} must include a valid HTTP(S) URL.")
+    return value
+
 API_URL = _normalise_base_url(os.environ.get("BETAAPI_URL", ""))
 API_KEY = os.environ.get("BETAAPI_KEY", "")
 
@@ -154,7 +168,7 @@ def _cleanup(path: str):
 
 async def _api_get(path: str, params: dict, timeout=None, retries: int = 2) -> dict:
     """GET request to BetaAPI with auto-retry on failure."""
-    url = f"{API_URL}{path}"
+    url = _ensure_http_url(f"{API_URL}{path}", "BetaAPI request URL")
     last_exc = None
     for attempt in range(retries + 1):
         try:
@@ -194,6 +208,7 @@ async def _api_get(path: str, params: dict, timeout=None, retries: int = 2) -> d
 
 async def _download_file(url: str, path: str, timeout=None):
     """Stream download URL to disk."""
+    url = _ensure_http_url(url, "Stream URL")
     async with aiohttp.ClientSession() as session:
         async with session.get(url, timeout=timeout or _VTIMEOUT) as resp:
             if resp.status != 200:
@@ -235,7 +250,10 @@ class YouTubeAPI:
         return None
 
     def _clean(self, link: str) -> str:
-        return link.split("&")[0] if "&" in link else link
+        value = (link or "").strip()
+        if not re.match(r"^https?://", value, re.IGNORECASE) and re.match(r"^(?:(?:www\.)?youtube\.com|youtu\.be)(?:/|$)", value, re.IGNORECASE):
+            value = _ensure_http_url(value, "YouTube URL")
+        return value.split("&")[0] if "&" in value else value
 
     async def details(self, link: str, videoid: Union[bool, str] = None):
         """Returns: title, duration_min, duration_sec, thumbnail, vidid"""
