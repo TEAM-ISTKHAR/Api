@@ -263,7 +263,17 @@ def _map_error(exc: Exception) -> HTTPException:
         )
     if isinstance(exc, ExtractionError):
         msg = str(exc).lower()
-        if "private" in msg:
+        if any(marker in msg for marker in [
+            "name or service not known",
+            "temporary failure in name resolution",
+            "nodename nor servname",
+            "getaddrinfo failed",
+            "network is unreachable",
+            "connection refused",
+            "connection reset",
+        ]):
+            friendly = "YouTube is temporarily unreachable from the Heroku server. Retrying shortly may resolve the network lookup."
+        elif "private" in msg:
             friendly = "This video is private."
         elif "unavailable" in msg or "removed" in msg:
             friendly = "This video is unavailable or has been removed."
