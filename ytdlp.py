@@ -5,7 +5,7 @@ Async-ready yt-dlp wrapper with:
   - In-memory TTL cache (8 min) — same URL won't hit YouTube twice
   - Async via ThreadPoolExecutor (non-blocking FastAPI)
   - Multi-client YouTube fallback (android → ios → web → tv_embedded → mweb)
-  - Thread-safe proxy rotation
+  - Direct YouTube requests with proxy-free network fallback
   - PO Token + cookie file support
   - Exponential backoff retry on IP blocks
 """
@@ -112,18 +112,9 @@ def _normalise_proxy(raw: str) -> Optional[str]:
 
 
 def _load_proxies() -> List[str]:
-    raw = os.getenv("PROXY_LIST", "").strip()
-    if not raw:
-        return []
-    proxies = []
-    for item in raw.split(","):
-        proxy = _normalise_proxy(item)
-        if proxy:
-            proxies.append(proxy)
-        elif item.strip():
-            logger.warning("Ignoring invalid proxy entry from PROXY_LIST.")
-    logger.info(f"Loaded {len(proxies)} valid proxies for round-robin rotation.")
-    return proxies
+    """Keep Heroku on direct connections; stale proxy vars must not break DNS."""
+    logger.info("Proxy routing disabled; using direct YouTube connections.")
+    return []
 
 
 _PROXY_POOL: List[str] = _load_proxies()
