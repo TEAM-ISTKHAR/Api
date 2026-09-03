@@ -60,6 +60,9 @@ python start.py
 
 ## Configuration
 
+> **Proxy safety:** `PROXY_LIST` is intentionally a secret Config Var/`.env` value. Do not commit the real proxy credentials, even in a private repository.
+
+
 Copy `.env.example` to `.env`. Never commit `.env`, Telegram tokens, cookies, proxy credentials, UPI/bank details, or API keys.
 
 Required for a complete deployment:

@@ -48,6 +48,10 @@
     "WORKERS": {
       "description": "Uvicorn worker count; keep at 1 for SQLite",
       "value": "1"
+    },
+    "PROXY_LIST": {
+      "description": "Private comma-separated HTTP proxy list for fast rotation; never commit its value",
+      "required": false
     }
   }
 }
